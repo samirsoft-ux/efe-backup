@@ -21,9 +21,9 @@ try:
         "-h", PG_HOST,
         "-p", str(PG_PORT),
         "-U", PG_USER,
-        "-F", "c",  
-        "-f", PG_BACKUP_FILENAME,  
-        "-d", PG_DATABASE 
+        "-F", "c",
+        "-f", PG_BACKUP_FILENAME,
+        "-d", PG_DATABASE
     ]
     os.environ["PGPASSWORD"] = PGPASSWORD
     subprocess.run(command, check=True)
@@ -59,11 +59,17 @@ def leer_contador():
     except Exception as e:
         raise Exception("No se pudo leer el archivo de contador en COS: " + str(e))
 
+def actualizar_contador(contador):
+    cos.Object(CONTADOR_BUCKET_NAME, CONTADOR_ARCHIVO).put(Body=str(contador).encode('utf-8'))
+
 # Enviar full backup al COS
 try:
     # Leer el contador actual
     contador = leer_contador()
     contador += 1
+
+    # Actualizar el contador en COS
+    actualizar_contador(contador)
 
     # Preparar nombres de archivos para el backup
     BACKUP_OBJECT_NAME = f"fullbackup_{PG_DATABASE}_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.backup"
@@ -84,5 +90,5 @@ try:
 except Exception as e:
     print("Un error ocurrió durante la subida a IBM COS:", e)
 
-# Limpiar variable de entorno
+#Limpiar variable de entorno
 del os.environ["PGPASSWORD"]
