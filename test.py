@@ -66,12 +66,11 @@ def leer_contador():
 def actualizar_contador(contador):
     cos.Object(CONTADOR_BUCKET_NAME, CONTADOR_ARCHIVO).put(Body=str(contador).encode('utf-8'))
 
-# Enviar full backup al COS
+#Enviar full backup al COS
 try:
     # Leer el contador actual
     contador = leer_contador()
     contador += 1
-
     # Actualizar el contador en COS
     actualizar_contador(contador)
 
@@ -82,8 +81,11 @@ try:
     with open(PG_BACKUP_FILENAME, "rb") as file_data:
         cos.Object(os.environ.get("BUCKET_NAME"), BACKUP_OBJECT_NAME).upload_fileobj(file_data)
 
+    # Construir la clave de la etiqueta dinámicamente
+    etiqueta_clave = f"Numero{contador}"
+
     # Definir y aplicar las etiquetas al objeto subido
-    tags = {'TagSet': [{'Key': 'Numero', 'Value': str(contador)}]}
+    tags = {'TagSet': [{'Key': etiqueta_clave, 'Value': str(contador)}]}
     s3_client.put_object_tagging(
         Bucket=os.environ.get("BUCKET_NAME"),
         Key=BACKUP_OBJECT_NAME,
