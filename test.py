@@ -1,9 +1,13 @@
 import psycopg2
 import ibm_boto3
 from ibm_botocore.client import Config
-from datetime import datetime
 import os
 import subprocess
+import pytz
+from datetime import datetime
+
+# Establecer la zona horaria de Lima, Perú
+timezone_lima = pytz.timezone("America/Lima")
 
 # Conectar a PostgreSQL
 PG_HOST = os.environ.get("PG_HOST")
@@ -11,8 +15,8 @@ PG_PORT = int(os.environ.get("PG_PORT", 31174))
 PG_DATABASE = os.environ.get("PG_DATABASE")
 PG_USER = os.environ.get("PG_USER")
 PGPASSWORD = os.environ.get("PGPASSWORD")
-FECHAYHORA = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-PG_BACKUP_FILENAME = f"./fullbackup_{PG_DATABASE}_{FECHAYHORA}.backup"
+FECHAYHORA = datetime.now(timezone_lima).strftime('%Y-%m-%d-%H-%M-%S')
+PG_BACKUP_FILENAME = f"./fullbackup_{os.environ.get('PG_DATABASE')}_{FECHAYHORA}.backup"
 
 try:
     # Realizar Full Backup
@@ -72,8 +76,8 @@ try:
     actualizar_contador(contador)
 
     # Preparar nombres de archivos para el backup
-    BACKUP_OBJECT_NAME = f"fullbackup_{PG_DATABASE}_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.backup"
-
+    BACKUP_OBJECT_NAME = f"fullbackup_{os.environ.get('PG_DATABASE')}_{FECHAYHORA}.backup"
+    
     # Subir el backup
     with open(PG_BACKUP_FILENAME, "rb") as file_data:
         cos.Object(os.environ.get("BUCKET_NAME"), BACKUP_OBJECT_NAME).upload_fileobj(file_data)
