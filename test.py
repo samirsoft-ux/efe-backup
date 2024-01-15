@@ -1,13 +1,13 @@
+from datetime import datetime, timezone
 import psycopg2
 import ibm_boto3
 from ibm_botocore.client import Config
 import os
 import subprocess
-import pytz
-from datetime import datetime
+import zoneinfo  # Nueva biblioteca en Python 3.9+
 
 # Establecer la zona horaria de Lima, Perú
-timezone_lima = pytz.timezone("America/Lima")
+timezone_lima = zoneinfo.ZoneInfo("America/Lima")
 
 # Conectar a PostgreSQL
 PG_HOST = os.environ.get("PG_HOST")
@@ -77,7 +77,7 @@ try:
 
     # Preparar nombres de archivos para el backup
     BACKUP_OBJECT_NAME = f"fullbackup_{os.environ.get('PG_DATABASE')}_{FECHAYHORA}.backup"
-    
+
     # Subir el backup
     with open(PG_BACKUP_FILENAME, "rb") as file_data:
         cos.Object(os.environ.get("BUCKET_NAME"), BACKUP_OBJECT_NAME).upload_fileobj(file_data)
