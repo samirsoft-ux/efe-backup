@@ -39,6 +39,14 @@ cos = ibm_boto3.resource("s3",
     endpoint_url=os.environ.get("ENDPOINT")
 )
 
+# Obtener el cliente s3 de ibm_boto3
+s3_client = ibm_boto3.client('s3',
+    ibm_api_key_id=os.environ.get("APIKEY"),
+    ibm_service_instance_id=os.environ.get("SERVICE_INSTANCE_ID"),
+    config=Config(signature_version='oauth'),
+    endpoint_url=os.environ.get("ENDPOINT")
+)
+
 # Variables para el archivo de contador en COS
 CONTADOR_BUCKET_NAME = os.environ.get("CONTADOR_BUCKET_NAME")
 CONTADOR_ARCHIVO = "contador_backup.txt"
@@ -66,7 +74,11 @@ try:
 
     # Definir y aplicar las etiquetas al objeto subido
     tags = {'TagSet': [{'Key': 'Numero', 'Value': str(contador)}]}
-    cos.Object(os.environ.get("BUCKET_NAME"), BACKUP_OBJECT_NAME).put_object_tagging(Tagging=tags)
+    s3_client.put_object_tagging(
+        Bucket=os.environ.get("BUCKET_NAME"),
+        Key=BACKUP_OBJECT_NAME,
+        Tagging=tags
+    )
 
     print(f"Backup {contador} subido con éxito a IBM COS con etiquetas")
 except Exception as e:
