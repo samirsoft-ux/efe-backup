@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import calendar
 import psycopg2
 import ibm_boto3
 from ibm_botocore.client import Config
@@ -48,18 +49,22 @@ try:
     # Actualizar el contador en COS
     actualizar_contador(contador)
 
-    # Determinar el prefijo del nombre del archivo basado en el valor del contador
-    if contador % 21 == 0:
+    # Obtener la fecha y hora actual
+    ahora = datetime.now(timezone_lima)
+    ultimo_dia_del_mes = calendar.monthrange(ahora.year, ahora.month)[1]
+
+    # Determinar el prefijo del nombre del archivo basado en la fecha
+    if ahora.weekday() == 6:  # 6 es domingo
         prefijo_nombre_archivo = "fullsemanal_"
-    elif contador % 30 == 0:
+    elif ahora.day == ultimo_dia_del_mes:
         prefijo_nombre_archivo = "fullmensual_"
     else:
         prefijo_nombre_archivo = "fullbackup_"
 
     # Preparar nombres de archivos para el backup
-    FECHAYHORA = datetime.now(timezone_lima).strftime('%Y-%m-%d-%H-%M-%S')
-    PG_BACKUP_FILENAME = f"./{prefijo_nombre_archivo}{os.environ.get('PG_DATABASE')}{FECHAYHORA}.backup"
-    BACKUP_OBJECT_NAME = f"{prefijo_nombre_archivo}{os.environ.get('PG_DATABASE')}{FECHAYHORA}.backup"
+    FECHAYHORA = ahora.strftime('%Y-%m-%d-%H-%M-%S')
+    PG_BACKUP_FILENAME = f"./{prefijo_nombre_archivo}{os.environ.get('PG_DATABASE')}_{FECHAYHORA}.backup"
+    BACKUP_OBJECT_NAME = f"{prefijo_nombre_archivo}{os.environ.get('PG_DATABASE')}_{FECHAYHORA}.backup"
 
     # Realizar Full Backup
     command = [
@@ -79,8 +84,8 @@ try:
     with open(PG_BACKUP_FILENAME, "rb") as file_data:
         cos.Object(os.environ.get("BUCKET_NAME"), BACKUP_OBJECT_NAME).upload_fileobj(file_data)
 
-    print(f"Backup subido con éxito a IBM COS con etiquetas")
+    print(f"Backup subido con éxito a IBM COS")
 except Exception as e:
-    print("Un error ocurrió durante la subida a IBM COS:", e)
+    print("Un error ocurrió durante la subida a IBM COS ", e)
 #Limpiar variable de entorno
 del os.environ["PGPASSWORD"]
