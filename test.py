@@ -25,30 +25,8 @@ cos = ibm_boto3.resource("s3",
     endpoint_url=os.environ.get("ENDPOINT")
 )
 
-# Variables para el archivo de contador en COS
-CONTADOR_BUCKET_NAME = os.environ.get("CONTADOR_BUCKET_NAME")
-CONTADOR_ARCHIVO = "contador_backup.txt"
-
-# Funciones para manejar el contador en COS
-def leer_contador():
-    try:
-        obj = cos.Object(CONTADOR_BUCKET_NAME, CONTADOR_ARCHIVO).get()
-        return int(obj['Body'].read().decode('utf-8'))
-    except Exception as e:
-        raise Exception("No se pudo leer el archivo de contador en COS: " + str(e))
-
-def actualizar_contador(contador):
-    cos.Object(CONTADOR_BUCKET_NAME, CONTADOR_ARCHIVO).put(Body=str(contador).encode('utf-8'))
-
 # Enviar full backup al COS
 try:
-    # Leer el contador actual
-    contador = leer_contador()
-    contador += 1
-
-    # Actualizar el contador en COS
-    actualizar_contador(contador)
-
     # Obtener la fecha y hora actual
     ahora = datetime.now(timezone_lima)
     ultimo_dia_del_mes = calendar.monthrange(ahora.year, ahora.month)[1]
@@ -87,5 +65,6 @@ try:
     print(f"Backup subido con éxito a IBM COS")
 except Exception as e:
     print("Un error ocurrió durante la subida a IBM COS ", e)
-#Limpiar variable de entorno
+
+# Limpiar variable de entorno
 del os.environ["PGPASSWORD"]
