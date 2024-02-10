@@ -85,7 +85,7 @@ try:
         "-f", PG_BACKUP_FILENAME,
         "-d", PG_DATABASE
     ]
-    PGPASSWORD = PGPASSWORD
+    secretos['PGPASSWORD'] = PGPASSWORD
     subprocess.run(command, check=True)
     print("Backup completo realizado con éxito")
 
