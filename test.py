@@ -3,26 +3,57 @@ import calendar
 import psycopg2
 import ibm_boto3
 from ibm_botocore.client import Config
-import os
 import subprocess
 import zoneinfo  # Nueva biblioteca en Python 3.9+
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+from ibm_secrets_manager_sdk.secrets_manager_v2 import SecretsManagerV2
+import json
 
 # Establecer la zona horaria de Lima, Perú
 timezone_lima = zoneinfo.ZoneInfo("America/Lima")
 
-# Conectar a PostgreSQL
-PG_HOST = os.environ.get("PG_HOST")
-PG_PORT = int(os.environ.get("PG_PORT", 31174))
-PG_DATABASE = os.environ.get("PG_DATABASE")
-PG_USER = os.environ.get("PG_USER")
-PGPASSWORD = os.environ.get("PGPASSWORD")
+# Configuración de IBM Secret Manager
+secret_api_key = os.environ.get("SECRET_IBM_API_KEY")
+authenticator = IAMAuthenticator(secret_api_key)
+secrets_manager = SecretsManagerV2(authenticator=authenticator)
+secrets_manager.set_service_url('https://65e7ac31-7d3d-4c5f-9545-f848e11f8a26.private.us-south.secrets-manager.appdomain.cloud')
 
+# Función para obtener secretos
+def obtener_secreto(secret_id):
+    response = secrets_manager.get_secret(id=secret_id)
+    secret_data = response.get_result()
+    if 'resources' in secret_data and len(secret_data['resources']) > 0:
+        secret_values = json.loads(secret_data['resources'][0]['secret_data']['payload'])
+        return secret_values
+    else:
+        print("La estructura del secreto no es como se esperaba.")
+        return {}
+
+# Obtener los secretos
+secret_id = os.environ.get("SECRET_ID_PORTAL")
+secretos = obtener_secreto(secret_id)
+
+# Asignar valores a las variables desde los secretos obtenidos
+PG_HOST = secretos['PG_HOST']
+PG_PORT = secretos['PG_PORT']
+PG_DATABASE = secretos['PG_DATABASE']
+PG_USER = secretos['PG_USER']
+PGPASSWORD = secretos['PGPASSWORD']
+
+APIKEY = secretos['APIKEY']
+SERVICE_INSTANCE_ID = secretos['SERVICE_INSTANCE_ID']
+ENDPOINT = secretos['ENDPOINT']
+
+BUCKET_NAME = secretos['BUCKET_NAME']
+
+# A partir de aquí, el resto del script permanece igual, pero ahora utilizando las variables asignadas desde los secretos
+# Por ejemplo, la configuración de IBM COS utilizaría APIKEY, SERVICE_INSTANCE_ID, y ENDPOINT obtenidos de los secretos
 # Configuración del cliente para IBM COS
 cos = ibm_boto3.resource("s3",
-    ibm_api_key_id=os.environ.get("APIKEY"),
-    ibm_service_instance_id=os.environ.get("SERVICE_INSTANCE_ID"),
+    ibm_api_key_id=os.environ.get(APIKEY),
+    ibm_service_instance_id=os.environ.get(SERVICE_INSTANCE_ID),
     config=Config(signature_version="oauth"),
-    endpoint_url=os.environ.get("ENDPOINT")
+    endpoint_url=os.environ.get(ENDPOINT)
 )
 
 # Enviar full backup al COS
@@ -60,7 +91,7 @@ try:
 
     # Subir el backup
     with open(PG_BACKUP_FILENAME, "rb") as file_data:
-        cos.Object(os.environ.get("BUCKET_NAME"), BACKUP_OBJECT_NAME).upload_fileobj(file_data)
+        cos.Object(BUCKET_NAME, BACKUP_OBJECT_NAME).upload_fileobj(file_data)
 
     print(f"Backup subido con éxito a IBM COS")
 except Exception as e:
