@@ -1,23 +1,17 @@
 # syntax=docker/dockerfile:1
 
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/engine/reference/builder/
-
 ARG PYTHON_VERSION=3.9
 FROM python:${PYTHON_VERSION}-slim as base
 
-# Prevents Python from writing pyc files.
+# Evita que Python escriba archivos pyc
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
+# Evita que Python almacene en buffer stdout y stderr
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
+# Crear un usuario no privilegiado para ejecutar la aplicación
 ARG UID=10001
 RUN adduser \
     --disabled-password \
@@ -28,23 +22,21 @@ RUN adduser \
 
 RUN chown appuser:appuser /app
 
-# Install PostgreSQL client (for pg_dump)
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+# Instalar cliente de PostgreSQL y actualizar pip
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/* && \
+    pip install --upgrade pip
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
-# Leverage a bind mount to requirements.txt to avoid having to copy them into
-# into this layer.
-RUN pip install --no-cache-dir psycopg2-binary ibm-cos-sdk
+# Instalar dependencias de Python directamente con pip, incluyendo el SDK de IBM Secrets Manager
+RUN pip install --no-cache-dir psycopg2-binary ibm-cos-sdk "ibm-secrets-manager-sdk"
 
-# Switch to the non-privileged user to run the application.
+# Cambiar al usuario no privilegiado para ejecutar la aplicación
 USER appuser
 
-# Copy the source code into the container.
+# Copiar solo el archivo test.py en el contenedor
 COPY test.py .
 
-# Expose the port that the application listens on.
+# Exponer el puerto que utiliza la aplicación, si es necesario
 EXPOSE 5000
 
-# Run the application.
-CMD python test.py
+# Ejecutar la aplicación
+CMD ["python", "test.py"]
