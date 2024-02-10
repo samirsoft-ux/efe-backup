@@ -19,12 +19,11 @@ authenticator = IAMAuthenticator(secret_api_key)
 secrets_manager = SecretsManagerV2(authenticator=authenticator)
 secrets_manager.set_service_url('https://65e7ac31-7d3d-4c5f-9545-f848e11f8a26.private.us-south.secrets-manager.appdomain.cloud')
 
-# Función para obtener secretos
 def obtener_secreto(secret_id):
     response = secrets_manager.get_secret(id=secret_id)
     secret_data = response.get_result()
-    if 'resources' in secret_data and len(secret_data['resources']) > 0:
-        secret_values = json.loads(secret_data['resources'][0]['secret_data']['payload'])
+    if 'data' in secret_data:
+        secret_values = secret_data['data']
         return secret_values
     else:
         print("La estructura del secreto no es como se esperaba.")
