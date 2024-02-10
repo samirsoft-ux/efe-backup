@@ -50,10 +50,10 @@ BUCKET_NAME = secretos['BUCKET_NAME']
 # Por ejemplo, la configuración de IBM COS utilizaría APIKEY, SERVICE_INSTANCE_ID, y ENDPOINT obtenidos de los secretos
 # Configuración del cliente para IBM COS
 cos = ibm_boto3.resource("s3",
-    ibm_api_key_id=os.environ.get(APIKEY),
-    ibm_service_instance_id=os.environ.get(SERVICE_INSTANCE_ID),
+    ibm_api_key_id=APIKEY,
+    ibm_service_instance_id=SERVICE_INSTANCE_ID,
     config=Config(signature_version="oauth"),
-    endpoint_url=os.environ.get(ENDPOINT)
+    endpoint_url=ENDPOINT
 )
 
 # Enviar full backup al COS
@@ -72,8 +72,8 @@ try:
 
     # Preparar nombres de archivos para el backup
     FECHAYHORA = ahora.strftime('%Y-%m-%d-%H-%M-%S')
-    PG_BACKUP_FILENAME = f"./{prefijo_nombre_archivo}{os.environ.get('PG_DATABASE')}_{FECHAYHORA}.backup"
-    BACKUP_OBJECT_NAME = f"{prefijo_nombre_archivo}{os.environ.get('PG_DATABASE')}_{FECHAYHORA}.backup"
+    PG_BACKUP_FILENAME = f"./{prefijo_nombre_archivo}{PG_DATABASE}_{FECHAYHORA}.backup"
+    BACKUP_OBJECT_NAME = f"{prefijo_nombre_archivo}{PG_DATABASE}_{FECHAYHORA}.backup"
 
     # Realizar Full Backup
     command = [
@@ -85,7 +85,7 @@ try:
         "-f", PG_BACKUP_FILENAME,
         "-d", PG_DATABASE
     ]
-    os.environ["PGPASSWORD"] = PGPASSWORD
+    PGPASSWORD = PGPASSWORD
     subprocess.run(command, check=True)
     print("Backup completo realizado con éxito")
 
@@ -98,4 +98,4 @@ except Exception as e:
     print("Un error ocurrió durante la subida a IBM COS ", e)
 
 # Limpiar variable de entorno
-del os.environ["PGPASSWORD"]
+del PGPASSWORD
